@@ -2,46 +2,20 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
+
+	"school-app/database"
 )
 
-type Student struct {
-	ID         int64  `json:"id"`
-	FirstName  string `json:"firstName"`
-	LastName   string `json:"lastName"`
-	Nickname   string `json:"nickname"`
-	ParentName string `json:"parentName"`
-	Address1   string `json:"address1"`
-	Address2   string `json:"address2"`
-	City       string `json:"city"`
-	State      string `json:"state"`
-	PostalCode string `json:"postalCode"`
-	Email      string `json:"email"`
-	Grade      string `json:"grade"`
-}
+type Student = database.Student
 
 func (api *API) listStudents(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	rows, err := api.db.Query(`
-		SELECT
-			id,
-			first_name,
-			last_name,
-			nickname,
-			parent_name,
-			address1,
-			address2,
-			city,
-			state,
-			postal_code,
-			email,
-			grade
-		FROM students
-		ORDER BY last_name, first_name
-	`)
+	students, err := database.ListStudents(api.db)
 	if err != nil {
 		http.Error(
 			w,
@@ -49,38 +23,6 @@ func (api *API) listStudents(
 			http.StatusInternalServerError,
 		)
 		return
-	}
-	defer rows.Close()
-
-	students := []Student{}
-
-	for rows.Next() {
-		var student Student
-
-		err := rows.Scan(
-			&student.ID,
-			&student.FirstName,
-			&student.LastName,
-			&student.Nickname,
-			&student.ParentName,
-			&student.Address1,
-			&student.Address2,
-			&student.City,
-			&student.State,
-			&student.PostalCode,
-			&student.Email,
-			&student.Grade,
-		)
-		if err != nil {
-			http.Error(
-				w,
-				"unable to read student",
-				http.StatusInternalServerError,
-			)
-			return
-		}
-
-		students = append(students, student)
 	}
 
 	writeJSON(w, http.StatusOK, students)
@@ -104,39 +46,7 @@ func (api *API) getStudent(
 		return
 	}
 
-	var student Student
-
-	err = api.db.QueryRow(`
-		SELECT
-			id,
-			first_name,
-			last_name,
-			nickname,
-			parent_name,
-			address1,
-			address2,
-			city,
-			state,
-			postal_code,
-			email,
-			grade
-		FROM students
-		WHERE id = ?
-	`, id).Scan(
-		&student.ID,
-		&student.FirstName,
-		&student.LastName,
-		&student.Nickname,
-		&student.ParentName,
-		&student.Address1,
-		&student.Address2,
-		&student.City,
-		&student.State,
-		&student.PostalCode,
-		&student.Email,
-		&student.Grade,
-	)
-
+	student, err := database.GetStudent(api.db, id)
 	if err != nil {
 		http.Error(
 			w,
@@ -147,6 +57,122 @@ func (api *API) getStudent(
 	}
 
 	writeJSON(w, http.StatusOK, student)
+}
+
+func (api *API) createStudent(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	var student Student
+	if err := json.NewDecoder(r.Body).Decode(&student); err != nil {
+		http.Error(
+			w,
+			"invalid request body",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	created, err := database.CreateStudent(api.db, student)
+	if err != nil {
+		http.Error(
+			w,
+			"unable to create student",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (api *API) updateStudent(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	id, err := strconv.ParseInt(
+		r.PathValue("id"),
+		10,
+		64,
+	)
+	if err != nil {
+		http.Error(
+			w,
+			"invalid student id",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	var student Student
+	if err := json.NewDecoder(r.Body).Decode(&student); err != nil {
+		http.Error(
+			w,
+			"invalid request body",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	student.ID = id
+	err = database.UpdateStudent(api.db, student)
+	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			http.Error(
+				w,
+				"student not found",
+				http.StatusNotFound,
+			)
+			return
+		}
+		http.Error(
+			w,
+			"unable to update student",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, student)
+}
+
+func (api *API) deleteStudent(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	id, err := strconv.ParseInt(
+		r.PathValue("id"),
+		10,
+		64,
+	)
+	if err != nil {
+		http.Error(
+			w,
+			"invalid student id",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	err = database.DeleteStudent(api.db, id)
+	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			http.Error(
+				w,
+				"student not found",
+				http.StatusNotFound,
+			)
+			return
+		}
+		http.Error(
+			w,
+			"unable to delete student",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func writeJSON(
