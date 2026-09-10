@@ -2,24 +2,14 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+
+	"school-app/model"
 )
 
-// Student represents a student record in the database.
-type Student struct {
-	ID         int64  `json:"id"`
-	FirstName  string `json:"firstName"`
-	LastName   string `json:"lastName"`
-	Nickname   string `json:"nickname"`
-	ParentName string `json:"parentName"`
-	Address1   string `json:"address1"`
-	Address2   string `json:"address2"`
-	City       string `json:"city"`
-	State      string `json:"state"`
-	PostalCode string `json:"postalCode"`
-	Email      string `json:"email"`
-	Grade      string `json:"grade"`
-}
+// Student is an alias for model.Student.
+type Student = model.Student
 
 // StudentStore handles all database operations for students.
 type StudentStore struct {
@@ -32,7 +22,7 @@ func NewStudentStore(db *sql.DB) *StudentStore {
 }
 
 // ListStudents returns all students ordered by last name, then first name.
-func (s *StudentStore) ListStudents() ([]Student, error) {
+func (s *StudentStore) ListStudents() ([]model.Student, error) {
 	rows, err := s.db.Query(`
 		SELECT
 			id,
@@ -55,9 +45,9 @@ func (s *StudentStore) ListStudents() ([]Student, error) {
 	}
 	defer rows.Close()
 
-	var students []Student
+	var students []model.Student
 	for rows.Next() {
-		var student Student
+		var student model.Student
 		if err := rows.Scan(
 			&student.ID,
 			&student.FirstName,
@@ -85,8 +75,8 @@ func (s *StudentStore) ListStudents() ([]Student, error) {
 }
 
 // GetStudent returns a single student by ID.
-func (s *StudentStore) GetStudent(id int64) (*Student, error) {
-	var student Student
+func (s *StudentStore) GetStudent(id int64) (*model.Student, error) {
+	var student model.Student
 
 	err := s.db.QueryRow(`
 		SELECT
@@ -119,6 +109,9 @@ func (s *StudentStore) GetStudent(id int64) (*Student, error) {
 		&student.Grade,
 	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, sql.ErrNoRows
+		}
 		return nil, fmt.Errorf("getting student %d: %w", id, err)
 	}
 
@@ -126,7 +119,7 @@ func (s *StudentStore) GetStudent(id int64) (*Student, error) {
 }
 
 // CreateStudent inserts a new student and returns the generated ID.
-func (s *StudentStore) CreateStudent(student Student) (int64, error) {
+func (s *StudentStore) CreateStudent(student model.Student) (int64, error) {
 	result, err := s.db.Exec(`
 		INSERT INTO students (
 			first_name,
@@ -167,7 +160,7 @@ func (s *StudentStore) CreateStudent(student Student) (int64, error) {
 }
 
 // UpdateStudent updates an existing student by ID.
-func (s *StudentStore) UpdateStudent(id int64, student Student) error {
+func (s *StudentStore) UpdateStudent(id int64, student model.Student) error {
 	result, err := s.db.Exec(`
 		UPDATE students SET
 			first_name = ?,

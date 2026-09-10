@@ -3,10 +3,11 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
-	"school-app/database"
+	"school-app/model"
 )
 
 func (api *API) listStudents(
@@ -46,7 +47,7 @@ func (api *API) getStudent(
 
 	student, err := api.studentStore.GetStudent(id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(
 				w,
 				"student not found",
@@ -70,7 +71,7 @@ func (api *API) createStudent(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	var student database.Student
+	var student model.Student
 
 	if err := json.NewDecoder(r.Body).Decode(&student); err != nil {
 		http.Error(
@@ -114,7 +115,7 @@ func (api *API) updateStudent(
 		return
 	}
 
-	var student database.Student
+	var student model.Student
 
 	if err := json.NewDecoder(r.Body).Decode(&student); err != nil {
 		http.Error(
@@ -126,7 +127,7 @@ func (api *API) updateStudent(
 	}
 
 	if err := api.studentStore.UpdateStudent(id, student); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(
 				w,
 				"student not found",
@@ -165,7 +166,7 @@ func (api *API) deleteStudent(
 	}
 
 	if err := api.studentStore.DeleteStudent(id); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(
 				w,
 				"student not found",

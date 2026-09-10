@@ -2,7 +2,10 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"testing"
+
+	"school-app/model"
 )
 
 func TestStudentStore_CRUD(t *testing.T) {
@@ -15,7 +18,7 @@ func TestStudentStore_CRUD(t *testing.T) {
 	store := NewStudentStore(db)
 
 	// Create
-	id, err := store.CreateStudent(Student{
+	id, err := store.CreateStudent(model.Student{
 		FirstName:  "John",
 		LastName:   "Doe",
 		Nickname:   "JD",
@@ -79,7 +82,7 @@ func TestStudentStore_CRUD(t *testing.T) {
 	}
 
 	_, err = store.GetStudent(id)
-	if err != sql.ErrNoRows {
+	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("expected ErrNoRows after delete, got %v", err)
 	}
 }
@@ -94,7 +97,7 @@ func TestStudentStore_GetStudent_NotFound(t *testing.T) {
 	store := NewStudentStore(db)
 
 	_, err = store.GetStudent(999)
-	if err != sql.ErrNoRows {
+	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("expected ErrNoRows, got %v", err)
 	}
 }
@@ -108,8 +111,8 @@ func TestStudentStore_UpdateStudent_NotFound(t *testing.T) {
 
 	store := NewStudentStore(db)
 
-	err = store.UpdateStudent(999, Student{FirstName: "Ghost", LastName: "User"})
-	if err != sql.ErrNoRows {
+	err = store.UpdateStudent(999, model.Student{FirstName: "Ghost", LastName: "User"})
+	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("expected ErrNoRows, got %v", err)
 	}
 }
@@ -124,7 +127,7 @@ func TestStudentStore_DeleteStudent_NotFound(t *testing.T) {
 	store := NewStudentStore(db)
 
 	err = store.DeleteStudent(999)
-	if err != sql.ErrNoRows {
+	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("expected ErrNoRows, got %v", err)
 	}
 }
@@ -138,17 +141,17 @@ func TestStudentStore_ListStudents_Ordered(t *testing.T) {
 
 	store := NewStudentStore(db)
 
-	_, err = store.CreateStudent(Student{FirstName: "Charlie", LastName: "Brown"})
+	_, err = store.CreateStudent(model.Student{FirstName: "Charlie", LastName: "Brown"})
 	if err != nil {
 		t.Fatalf("creating student: %v", err)
 	}
 
-	_, err = store.CreateStudent(Student{FirstName: "Alice", LastName: "Adams"})
+	_, err = store.CreateStudent(model.Student{FirstName: "Alice", LastName: "Adams"})
 	if err != nil {
 		t.Fatalf("creating student: %v", err)
 	}
 
-	_, err = store.CreateStudent(Student{FirstName: "Bob", LastName: "Brown"})
+	_, err = store.CreateStudent(model.Student{FirstName: "Bob", LastName: "Brown"})
 	if err != nil {
 		t.Fatalf("creating student: %v", err)
 	}
