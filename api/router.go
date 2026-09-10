@@ -1,17 +1,18 @@
 package api
 
 import (
-	"database/sql"
 	"net/http"
+
+	"school-app/database"
 )
 
 type API struct {
-	db *sql.DB
+	studentStore *database.StudentStore
 }
 
-func NewRouter(db *sql.DB) http.Handler {
+func NewRouter(studentStore *database.StudentStore) http.Handler {
 	api := &API{
-		db: db,
+		studentStore: studentStore,
 	}
 
 	mux := http.NewServeMux()

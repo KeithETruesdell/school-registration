@@ -15,7 +15,8 @@ func main() {
 	}
 	defer db.Close()
 
-	handler := api.NewRouter(db)
+	studentStore := database.NewStudentStore(db)
+	handler := api.NewRouter(studentStore)
 
 	server := &http.Server{
 		Addr:    ":8080",
