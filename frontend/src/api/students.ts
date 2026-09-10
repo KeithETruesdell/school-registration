@@ -40,3 +40,67 @@ export async function getStudent(
 
   return response.json();
 }
+
+export async function createStudent(
+  student: Omit<Student, "id">,
+): Promise<Student> {
+  const response = await fetch(
+    "/api/students",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(student),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Unable to create student",
+    );
+  }
+
+  return response.json();
+}
+
+export async function updateStudent(
+  id: number,
+  student: Student,
+): Promise<Student> {
+  const response = await fetch(
+    `/api/students/${id}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(student),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Unable to update student",
+    );
+  }
+
+  return response.json();
+}
+
+export async function deleteStudent(
+  id: number,
+): Promise<void> {
+  const response = await fetch(
+    `/api/students/${id}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Unable to delete student",
+    );
+  }
+}
